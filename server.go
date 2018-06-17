@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/gorilla/mux"
+	"google.golang.org/appengine"
 )
 
 // Hero type
@@ -41,7 +42,8 @@ func main() {
 	http.Handle("/", router)
 
 	log.Println("Start Server: http://localhost:8081")
-	log.Fatalln(http.ListenAndServe(":8081", nil))
+	// log.Fatalln(http.ListenAndServe(":8081", nil))
+	appengine.Main()
 }
 
 func heroes(w http.ResponseWriter, r *http.Request) {
