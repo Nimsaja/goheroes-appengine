@@ -3,50 +3,50 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
+<<<<<<< HEAD
 	"strings"
+=======
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 
+	"github.com/gorilla/mux"
 	"github.com/lima1909/goheroes-appengine/db"
 	"github.com/lima1909/goheroes-appengine/service"
 
-	"github.com/gorilla/mux"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/log"
 )
 
 var (
-	svc service.HeroService
-	// Heroes list from Hero examples
-	Heroes = []service.Hero{
-		service.Hero{ID: 1, Name: "Jasmin"},
-		service.Hero{ID: 2, Name: "Mario"},
-		service.Hero{ID: 3, Name: "Alex M"},
-		service.Hero{ID: 4, Name: "Adam O"},
-		service.Hero{ID: 5, Name: "Shauna C"},
-		service.Hero{ID: 6, Name: "Lena H"},
-		service.Hero{ID: 7, Name: "Chris S"},
-	}
+	app *service.App
 )
 
 func main() {
 
-	svc = db.DataStoreService{}
+	app = service.NewApp(db.MemService{})
 
 	router := mux.NewRouter()
 
+<<<<<<< HEAD
 	router.HandleFunc("/api/heroes", heroes)
 	router.HandleFunc("/api/heroes/", searchHeroes)
 	router.HandleFunc("/api/heroes/{id:[0-9]+}", heroesID)
+=======
+	router.Handle("/", http.RedirectHandler("/api/heroes", http.StatusFound))
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 
+	router.HandleFunc("/api/heroes", heroes)
+	router.Methods("GET").Path("/api/heroes/{id:[0-9]+}").HandlerFunc(heroID)
 	http.Handle("/", router)
 
-	// log.Println("Start Server: http://localhost:8081")
-	// log.Fatalln(http.ListenAndServe(":8081", nil))
-	appengine.Main()
+	log.Println("Start Server: http://localhost:8080")
+	log.Fatalln(http.ListenAndServe(":8080", nil))
+	// appengine.Main()
 }
 
 func heroes(w http.ResponseWriter, r *http.Request) {
+<<<<<<< HEAD
 	setHeaderOptions(w)
 
 	switch r.Method {
@@ -85,8 +85,22 @@ func loadHeroes(w http.ResponseWriter) {
 	if err != nil {
 		fireError(w, "Err by marshal heroes: %v", err)
 		return
-	}
+=======
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
+	switch r.Method {
+	case "GET":
+		heroList(w, r)
+	case "POST":
+		addHero(w, r)
+	default:
+		http.Error(w, "invalid method: "+r.Method, http.StatusBadRequest)
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
+	}
+}
+
+<<<<<<< HEAD
 	fmt.Fprintf(w, string(b))
 }
 
@@ -107,9 +121,16 @@ func getHeroByID(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		fireError(w, "Err by marshal hero: %v", err)
 		return
+=======
+func heroList(w http.ResponseWriter, r *http.Request) {
+	name := ""
+	names, ok := r.URL.Query()["name"]
+	if ok || len(names) == 1 {
+		name = names[0]
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 	}
-	log.Infof(appengine.NewContext(r), "Names=%v -> Name=%v", names, name)
 
+<<<<<<< HEAD
 	fmt.Fprintf(w, string(b))
 }
 
@@ -118,6 +139,9 @@ func updateHero(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	heroes, err := svc.List(appengine.NewContext(r), name)
+=======
+	heroes, err := app.List(appengine.NewContext(r), name)
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -135,6 +159,7 @@ func updateHero(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "")
 }
 
+<<<<<<< HEAD
 func addHero2(w http.ResponseWriter, r *http.Request) {
 	hero, err := getHeroFromRequest(r, w)
 
@@ -302,24 +327,58 @@ func searchHeroes(w http.ResponseWriter, r *http.Request) {
 	}
 
 	fmt.Fprintf(w, string(b))
+=======
+func addHero(w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+
+	hero := service.Hero{}
+	err := json.NewDecoder(r.Body).Decode(&hero)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	hero, err = app.Add(appengine.NewContext(r), hero)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	b, err := json.Marshal(hero)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	fmt.Fprintf(w, "%s", string(b))
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 }
 
-// 	//convert to Hero
-// 	var hero db.Hero
-// 	err = json.Unmarshal(body, &hero)
+func heroID(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Content-Type", "application/json")
 
-// 	if err != nil {
-// 		return db.Hero{}, err
-// 	}
+	vars := mux.Vars(r)
+	varID := vars["id"]
+	id, err := strconv.Atoi(varID)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("invalid id: %v", varID), http.StatusBadRequest)
+		return
+	}
 
-// 	return hero, nil
-// }
+	hero, err := app.GetByID(appengine.NewContext(r), int64(id))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
 
-// func writeToClient(w http.ResponseWriter, s string) {
-// 	w.Header().Set("Access-Control-Allow-Origin", "*")
-// 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-// 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+	b, err := json.Marshal(hero)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
+<<<<<<< HEAD
 func setHeaderOptions(w http.ResponseWriter) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
@@ -329,4 +388,7 @@ func setHeaderOptions(w http.ResponseWriter) {
 func fireError(w http.ResponseWriter, message string, err error) {
 	formattedError := fmt.Sprintf(message, err)
 	http.Error(w, fmt.Errorf(formattedError).Error(), http.StatusInternalServerError)
+=======
+	fmt.Fprintf(w, "%s", string(b))
+>>>>>>> mem-impl from HeroService and add methods Add and GetByID
 }
