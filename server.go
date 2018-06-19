@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -36,6 +37,7 @@ func main() {
 	router.Handle("/", http.RedirectHandler("/api/heroes", http.StatusFound))
 >>>>>>> mem-impl from HeroService and add methods Add and GetByID
 
+	router.HandleFunc("/example", example)
 	router.HandleFunc("/api/heroes", heroes)
 	router.Methods("GET").Path("/api/heroes/{id:[0-9]+}").HandlerFunc(heroID)
 	http.Handle("/", router)
@@ -43,6 +45,20 @@ func main() {
 	log.Println("Start Server: http://localhost:8080")
 	log.Fatalln(http.ListenAndServe(":8080", nil))
 	// appengine.Main()
+}
+
+func example(w http.ResponseWriter, r *http.Request) {
+	t, err := template.ParseFiles("template/index.html")
+	if err != nil {
+		fmt.Fprintf(w, "Err: %v\n", err)
+		return
+	}
+
+	err = t.Execute(w, "Hello World!")
+	if err != nil {
+		fmt.Fprintf(w, "Err: %v\n", err)
+		return
+	}
 }
 
 func heroes(w http.ResponseWriter, r *http.Request) {
